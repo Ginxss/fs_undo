@@ -157,6 +157,13 @@ impl FsOp {
         }
     }
 
+    pub fn rename(from: impl AsRef<Path>, to: impl AsRef<Path>) -> FsOp {
+        FsOp::Rename {
+            from: from.as_ref().to_path_buf(),
+            to: to.as_ref().to_path_buf(),
+        }
+    }
+
     /// Executes the operation, storing any data needed to reverse it.
     /// For example, before a file can be deleted, its contents need to be read, which can fail as well.
     /// TODO: logging can be turned off...
