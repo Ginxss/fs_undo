@@ -29,7 +29,7 @@ mod tests {
     use super::*;
 
     use crate::test_util::{
-        assert_exists_and_len, cleanup_test_path, init_test_path, random_bytes,
+        assert_file_exists_and_len, cleanup_test_path, init_test_path, random_bytes,
     };
 
     #[test]
@@ -63,7 +63,7 @@ mod tests {
         undo(&path, &Some(overwritten_data)).unwrap();
 
         // assert
-        assert_exists_and_len(&path, data.len());
+        assert_file_exists_and_len(&path, data.len());
 
         // cleanup
         cleanup_test_path(base);

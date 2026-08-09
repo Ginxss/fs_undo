@@ -45,7 +45,7 @@ mod tests {
     use super::*;
 
     use crate::test_util::{
-        assert_exists_and_len, cleanup_test_path, init_test_path, random_bytes,
+        assert_file_exists_and_len, cleanup_test_path, init_test_path, random_bytes,
     };
 
     #[test]
@@ -59,7 +59,7 @@ mod tests {
         write(&path, &data).unwrap();
 
         // assert
-        assert_exists_and_len(&path, data.len());
+        assert_file_exists_and_len(&path, data.len());
 
         // cleanup
         cleanup_test_path(base);
@@ -96,7 +96,7 @@ mod tests {
         write(&path, &new_data).unwrap();
 
         // assert
-        assert_exists_and_len(&path, new_data.len());
+        assert_file_exists_and_len(&path, new_data.len());
 
         // cleanup
         cleanup_test_path(base);
@@ -116,7 +116,7 @@ mod tests {
         undo(&path, &overwritten_data).unwrap();
 
         // assert
-        assert_exists_and_len(&path, prev_data.len());
+        assert_file_exists_and_len(&path, prev_data.len());
 
         // cleanup
         cleanup_test_path(base);
@@ -135,7 +135,7 @@ mod tests {
         write(&path, &data2).unwrap();
 
         // assert
-        assert_exists_and_len(&path, data2.len());
+        assert_file_exists_and_len(&path, data2.len());
 
         // cleanup
         cleanup_test_path(base);
@@ -173,8 +173,8 @@ mod tests {
         copy(&from, &to).unwrap();
 
         // assert
-        assert_exists_and_len(&from, data.len());
-        assert_exists_and_len(&to, data.len());
+        assert_file_exists_and_len(&from, data.len());
+        assert_file_exists_and_len(&to, data.len());
 
         // cleanup
         cleanup_test_path(base);
@@ -194,7 +194,7 @@ mod tests {
         undo(&to, &overwritten_data).unwrap();
 
         // assert
-        assert_exists_and_len(&from, data.len());
+        assert_file_exists_and_len(&from, data.len());
         assert!(!to.exists());
 
         // cleanup
@@ -216,8 +216,8 @@ mod tests {
         copy(&from, &to).unwrap();
 
         // assert
-        assert_exists_and_len(&from, from_data.len());
-        assert_exists_and_len(&to, from_data.len());
+        assert_file_exists_and_len(&from, from_data.len());
+        assert_file_exists_and_len(&to, from_data.len());
 
         // cleanup
         cleanup_test_path(base);
@@ -239,8 +239,8 @@ mod tests {
         undo(&to, &overwritten_data).unwrap();
 
         // assert
-        assert_exists_and_len(&from, from_data.len());
-        assert_exists_and_len(&to, prev_to_data.len());
+        assert_file_exists_and_len(&from, from_data.len());
+        assert_file_exists_and_len(&to, prev_to_data.len());
 
         // cleanup
         cleanup_test_path(base);
@@ -260,8 +260,8 @@ mod tests {
         copy(&from, &to).unwrap();
 
         // assert
-        assert_exists_and_len(&from, data.len());
-        assert_exists_and_len(&to, data.len());
+        assert_file_exists_and_len(&from, data.len());
+        assert_file_exists_and_len(&to, data.len());
 
         // cleanup
         cleanup_test_path(base);
@@ -282,7 +282,7 @@ mod tests {
         let second_undo_res = undo(&to, &overwritten_data);
 
         // assert
-        assert_exists_and_len(&from, data.len());
+        assert_file_exists_and_len(&from, data.len());
         assert!(!to.exists());
         assert!(second_undo_res.is_err());
 
