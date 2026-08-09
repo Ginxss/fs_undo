@@ -1,14 +1,11 @@
 use std::{fs, io, os::unix, path::Path};
 
-pub fn execute(path: &Path, target: &Path) -> io::Result<()> {
+pub fn execute(path: &Path, target: &Path, fail_on_missing_target: bool) -> io::Result<()> {
     println!("Creating link: {} => {}", path.display(), target.display());
 
-    // TODO
-    if !target.exists() {
-        return Err(io::Error::new(
-            io::ErrorKind::NotFound,
-            format!("Link target {} does not exist", target.display()),
-        ));
+    if fail_on_missing_target && !target.exists() {
+        let msg = format!("Link target {} does not exist", target.display());
+        return Err(io::Error::new(io::ErrorKind::NotFound, msg));
     }
 
     unix::fs::symlink(target, path)
@@ -43,10 +40,27 @@ mod tests {
         let target = target.canonicalize().unwrap();
 
         // act
-        execute(&path, &target).unwrap();
+        execute(&path, &target, false).unwrap();
 
         // assert
         assert_symlink_exists_and_len(&path, target_data.len());
+
+        // cleanup
+        cleanup_test_path(base);
+    }
+
+    #[test]
+    fn test_create_symlink_fail_on_missing_target() {
+        // arrange
+        let base = init_test_path("test_create_symlink_fail_on_missing_target");
+        let path = base.join("created_symlink");
+        let target = base.join("target.txt");
+
+        // act
+        let res = execute(&path, &target, true);
+
+        // assert
+        assert!(res.is_err());
 
         // cleanup
         cleanup_test_path(base);
@@ -63,7 +77,7 @@ mod tests {
         let target = target.canonicalize().unwrap();
 
         // act
-        execute(&path, &target).unwrap();
+        execute(&path, &target, false).unwrap();
         undo(&path, &target).unwrap();
 
         // assert
@@ -85,8 +99,8 @@ mod tests {
         let target = target.canonicalize().unwrap();
 
         // act
-        execute(&path, &target).unwrap();
-        let second_create_res = execute(&path, &target);
+        execute(&path, &target, false).unwrap();
+        let second_create_res = execute(&path, &target, false);
 
         // assert
         assert!(second_create_res.is_err());
@@ -106,7 +120,7 @@ mod tests {
         let target = target.canonicalize().unwrap();
 
         // act
-        execute(&path, &target).unwrap();
+        execute(&path, &target, false).unwrap();
         undo(&path, &target).unwrap();
         let second_undo_res = undo(&path, &target);
 

@@ -11,11 +11,8 @@ use rand::RngExt;
 const BASE_PATH_NAME: &str = "unit_tests";
 const MAX_FILE_BYTES: usize = 4096;
 
-// TODO: static or const?
 static BASE_PATH: OnceLock<&Path> = OnceLock::new();
 static CLEANUP_MUTEX: Mutex<()> = Mutex::new(());
-// TODO
-// static REGISTERED_TEST_PATHS: HashMap<&'static str, bool> = HashMap::new();
 
 fn init_base_path() -> &'static Path {
     BASE_PATH.get_or_init(|| {

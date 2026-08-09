@@ -1,5 +1,7 @@
 use std::{fs, io, path::Path};
 
+use crate::err::io_err_invalid_input;
+
 /// Returns overwritten data.
 pub fn write(path: &Path, data: &Vec<u8>) -> io::Result<Option<Vec<u8>>> {
     println!("Writing file: {}", path.display());
@@ -15,11 +17,8 @@ pub fn copy(from: &Path, to: &Path) -> io::Result<Option<Vec<u8>>> {
     println!("Copying file: {} => {}", from.display(), to.display());
 
     if to == from {
-        // TODO: better?
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            format!("Copy target {} is the same as the source", to.display()),
-        ));
+        let msg = &format!("Copy target {} is the same as the source", to.display());
+        return io_err_invalid_input(msg);
     }
 
     let prev_data = to.exists().then(|| fs::read(to)).transpose()?;

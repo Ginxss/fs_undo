@@ -1,3 +1,15 @@
+//! Reversible filesystem operations
+//!
+//! Wraps standard filesystem operations in an enum that exposes `execute()` and `undo()` methods.
+//! On `execute()`, all information needed to fully restore the state before the operation is
+//! queried and stored in memory.
+//! Not efficient, but useful for scripts that operate on a limited number of filesystem entries and
+//! want to restore the initial filesystem state, e.g. on error.
+//!
+//! More documentation will follow.
+
+// #![warn(missing_docs)]
+
 pub mod fs_op;
 pub mod undo;
 

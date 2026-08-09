@@ -1,6 +1,10 @@
 use std::{fs, io, path::Path};
 
-use crate::{err::io_err_invalid_filetype, fs_op::FsOp, undo::Undo};
+use crate::{
+    err::{io_err_invalid_filetype, io_err_invalid_input},
+    fs_op::FsOp,
+    undo::Undo,
+};
 
 /// Tries to be as atomic as possible:
 /// If there is an error while removing, tries to undo all previous operations before returning the error.
@@ -11,17 +15,13 @@ pub fn execute(path: &Path) -> io::Result<Vec<FsOp>> {
     println!("Removing dir including contents: {}", path.display());
 
     if path.is_symlink() {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            format!("RemoveDirAll input path {} is a symlink", path.display()),
-        ));
+        let msg = &format!("RemoveDirAll input path {} is a symlink", path.display());
+        return io_err_invalid_input(msg);
     }
 
     if !path.is_dir() {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            format!("RemoveDirAll input path {} is not a dir", path.display()),
-        ));
+        let msg = &format!("RemoveDirAll input path {} is not a dir", path.display());
+        return io_err_invalid_input(msg);
     }
 
     let mut ops = Vec::new();

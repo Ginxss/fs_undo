@@ -46,9 +46,13 @@ pub enum FsOp {
     },
 
     /// Wraps `unix::fs::symlink` (Fails if `path` already exists).
-    /// Fails if `target` does not exist on execution. TODO: make this optional
+    /// Optionally fails if `target` does not exist on execution (set `fail_on_missing_target`).
     /// Undo deletes `path` (Only the symlink is deleted).
-    CreateSymlink { path: PathBuf, target: PathBuf },
+    CreateSymlink {
+        path: PathBuf,
+        target: PathBuf,
+        fail_on_missing_target: bool,
+    },
 
     /// Wraps `fs::remove_file`.
     /// Stores the link target in `target` on execution.
@@ -123,6 +127,7 @@ impl FsOp {
         FsOp::CreateSymlink {
             path: path.as_ref().to_path_buf(),
             target: target.as_ref().to_path_buf(),
+            fail_on_missing_target: false,
         }
     }
 
@@ -166,9 +171,9 @@ impl FsOp {
         }
     }
 
+    // TODO: logging configurable with log level?
     /// Executes the operation, storing any data needed to reverse it.
     /// For example, before a file can be deleted, its contents need to be read, which can fail as well.
-    /// TODO: logging configurable with log level?
     pub fn execute(&mut self) -> io::Result<()> {
         match self {
             FsOp::CreateFile { path, data } => file::create::execute(path, data),
@@ -196,7 +201,11 @@ impl FsOp {
                 Ok(())
             }
 
-            FsOp::CreateSymlink { path, target } => symlink::create::execute(path, target),
+            FsOp::CreateSymlink {
+                path,
+                target,
+                fail_on_missing_target,
+            } => symlink::create::execute(path, target, *fail_on_missing_target),
 
             FsOp::RemoveSymlink { path, target } => {
                 target.replace(symlink::remove::execute(path)?);
@@ -257,7 +266,11 @@ impl Undo for FsOp {
 
             FsOp::RemoveFile { path, data } => file::remove::undo(path, data),
 
-            FsOp::CreateSymlink { path, target } => symlink::create::undo(path, target),
+            FsOp::CreateSymlink {
+                path,
+                target,
+                fail_on_missing_target: _,
+            } => symlink::create::undo(path, target),
 
             FsOp::RemoveSymlink { path, target } => symlink::remove::undo(path, target),
 

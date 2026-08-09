@@ -4,9 +4,17 @@ use std::{
     path::Path,
 };
 
+use crate::err::io_err_invalid_input;
+
 /// Returns the contents of the removed file.
+/// Fails if `path` is a symlink. Use `RemoveSymlink` instead.
 pub fn execute(path: &Path) -> io::Result<Vec<u8>> {
     println!("Removing file: {}", path.display());
+
+    if path.is_symlink() {
+        let msg = &format!("RemoveFile path {} is a symlink", path.display());
+        return io_err_invalid_input(msg);
+    }
 
     let data = fs::read(path)?;
     fs::remove_file(path)?;

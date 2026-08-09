@@ -4,10 +4,17 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::err::io_err_invalid_input;
+
 /// Returns the target of the removed link.
-// TODO: fail if not symlink?
+/// Fails if `path` is not a symlink.
 pub fn execute(path: &Path) -> io::Result<PathBuf> {
     let target = fs::read_link(path)?;
+
+    if !path.is_symlink() {
+        let msg = &format!("RemoveSymlink path {} is not a symlink", path.display());
+        return io_err_invalid_input(msg);
+    }
 
     println!(
         "Removing symlink: {} => {}",
