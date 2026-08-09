@@ -23,3 +23,88 @@ pub fn undo(path: &Path, data: &Option<Vec<u8>>) -> io::Result<()> {
     let mut file = File::create_new(path)?;
     file.write_all(data)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::test_util::{
+        assert_exists_and_len, cleanup_test_path, init_test_path, random_bytes,
+    };
+
+    #[test]
+    fn test_remove_file() {
+        // arrange
+        let base = init_test_path("test_remove_file");
+        let path = base.join("file_to_remove.txt");
+        let data = random_bytes();
+        fs::write(&path, &data).unwrap();
+
+        // act
+        execute(&path).unwrap();
+
+        // assert
+        assert!(!path.exists());
+
+        // cleanup
+        cleanup_test_path(base);
+    }
+
+    #[test]
+    fn test_remove_file_undo() {
+        // arrange
+        let base = init_test_path("test_remove_file_undo");
+        let path = base.join("file_to_remove.txt");
+        let data = random_bytes();
+        fs::write(&path, &data).unwrap();
+
+        // act
+        let overwritten_data = execute(&path).unwrap();
+        undo(&path, &Some(overwritten_data)).unwrap();
+
+        // assert
+        assert_exists_and_len(&path, data.len());
+
+        // cleanup
+        cleanup_test_path(base);
+    }
+
+    #[test]
+    fn test_remove_file_twice() {
+        // arrange
+        let base = init_test_path("test_remove_file_twice");
+        let path = base.join("file_to_remove.txt");
+        let data = random_bytes();
+        fs::write(&path, &data).unwrap();
+
+        // act
+        execute(&path).unwrap();
+        let second_remove_res = execute(&path);
+
+        // assert
+        assert!(second_remove_res.is_err());
+
+        // cleanup
+        cleanup_test_path(base);
+    }
+
+    #[test]
+    fn test_remove_file_undo_twice() {
+        // arrange
+        let base = init_test_path("test_remove_file_undo_twice");
+        let path = base.join("file_to_remove.txt");
+        let data = random_bytes();
+        fs::write(&path, &data).unwrap();
+
+        // act
+        let overwritten_data = execute(&path).unwrap();
+        undo(&path, &Some(overwritten_data.clone())).unwrap();
+        let second_undo_res = undo(&path, &Some(overwritten_data));
+
+        // assert
+        assert!(second_undo_res.is_err());
+
+        // cleanup
+        cleanup_test_path(base);
+    }
+}

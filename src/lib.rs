@@ -3,6 +3,9 @@ pub mod undo;
 
 mod err;
 
+#[cfg(test)]
+mod test_util;
+
 use std::{io, path::Path};
 
 use crate::{err::io_err_invalid_filetype, fs_op::FsOp};
