@@ -168,7 +168,7 @@ impl FsOp {
 
     /// Executes the operation, storing any data needed to reverse it.
     /// For example, before a file can be deleted, its contents need to be read, which can fail as well.
-    /// TODO: logging can be turned off with log level?
+    /// TODO: logging configurable with log level?
     pub fn execute(&mut self) -> io::Result<()> {
         match self {
             FsOp::CreateFile { path, data } => file::create::execute(path, data),

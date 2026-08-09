@@ -55,8 +55,17 @@ pub fn random_bytes() -> Vec<u8> {
     (0..len).map(|_| rng.random()).collect()
 }
 
-pub fn assert_file_exists_and_len(path: &Path, len: usize) {
+fn assert_exists_and_len(path: &Path, len: usize) {
     assert!(path.exists());
-    assert!(path.is_file());
     assert_eq!(path.metadata().unwrap().len() as usize, len);
+}
+
+pub fn assert_file_exists_and_len(path: &Path, len: usize) {
+    assert_exists_and_len(path, len);
+    assert!(path.is_file());
+}
+
+pub fn assert_symlink_exists_and_len(path: &Path, len: usize) {
+    assert_exists_and_len(path, len);
+    assert!(path.is_symlink());
 }
