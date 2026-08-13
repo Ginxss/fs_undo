@@ -3,9 +3,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use log::info;
+
 /// Returns the first existing parent.
 pub fn execute(path: &Path) -> io::Result<Option<PathBuf>> {
-    println!("Creating dir including parents: {}", path.display());
+    info!(
+        "Creating dir including missing parent dirs: {}",
+        path.display()
+    );
 
     let existing_base = iter::successors(path.parent(), |parent| parent.parent())
         .find(|p| p.exists())
@@ -16,7 +21,7 @@ pub fn execute(path: &Path) -> io::Result<Option<PathBuf>> {
 }
 
 pub fn undo(path: &Path, existing_base: &Option<PathBuf>) -> io::Result<()> {
-    println!(
+    info!(
         "Removing created dir including created parent dirs: {}",
         path.display()
     );

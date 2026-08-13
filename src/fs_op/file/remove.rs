@@ -4,12 +4,14 @@ use std::{
     path::Path,
 };
 
+use log::info;
+
 use crate::err::io_err_invalid_input;
 
 /// Returns the contents of the removed file.
 /// Fails if `path` is a symlink. Use `RemoveSymlink` instead.
 pub fn execute(path: &Path) -> io::Result<Vec<u8>> {
-    println!("Removing file: {}", path.display());
+    info!("Removing file: {}", path.display());
 
     if path.is_symlink() {
         let msg = &format!("RemoveFile path {} is a symlink", path.display());
@@ -22,7 +24,7 @@ pub fn execute(path: &Path) -> io::Result<Vec<u8>> {
 }
 
 pub fn undo(path: &Path, data: &Option<Vec<u8>>) -> io::Result<()> {
-    println!("Recreating file: {}", path.display());
+    info!("Recreating file: {}", path.display());
 
     let data = data
         .as_ref()

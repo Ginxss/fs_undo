@@ -4,15 +4,16 @@ use std::{
     path::Path,
 };
 
-// TODO: visibility
+use log::info;
+
 pub fn execute(path: &Path, data: &[u8]) -> io::Result<()> {
-    println!("Creating file: {}", path.display());
+    info!("Creating file: {}", path.display());
     let mut file = File::create_new(path)?;
     file.write_all(data)
 }
 
 pub fn undo(path: &Path) -> io::Result<()> {
-    println!("Removing created file: {}", path.display());
+    info!("Removing created file: {}", path.display());
     fs::remove_file(path)
 }
 

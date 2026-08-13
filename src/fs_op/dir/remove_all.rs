@@ -1,5 +1,7 @@
 use std::{fs, io, path::Path};
 
+use log::info;
+
 use crate::{
     err::{io_err_invalid_filetype, io_err_invalid_input},
     fs_op::FsOp,
@@ -12,7 +14,7 @@ use crate::{
 ///
 /// Returns all delete operations in the order they were executed.
 pub fn execute(path: &Path) -> io::Result<Vec<FsOp>> {
-    println!("Removing dir including contents: {}", path.display());
+    info!("Removing dir including contents: {}", path.display());
 
     if path.is_symlink() {
         let msg = &format!("RemoveDirAll input path {} is a symlink", path.display());
@@ -64,7 +66,7 @@ fn remove_dir_recursive(path: impl AsRef<Path>, fs_ops: &mut Vec<FsOp>) -> io::R
 }
 
 pub fn undo(path: &Path, ops: &Vec<FsOp>) -> io::Result<()> {
-    println!("Recreating dir including contents: {}", path.display());
+    info!("Recreating dir including contents: {}", path.display());
     ops.undo()
 }
 

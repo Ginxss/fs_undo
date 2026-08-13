@@ -1,12 +1,14 @@
 use std::{fs, io, path::Path};
 
+use log::info;
+
 pub fn execute(path: &Path) -> io::Result<()> {
-    println!("Removing empty dir: {}", path.display());
+    info!("Removing empty dir: {}", path.display());
     fs::remove_dir(path)
 }
 
 pub fn undo(path: &Path) -> io::Result<()> {
-    println!("Recreating empty dir: {}", path.display());
+    info!("Recreating empty dir: {}", path.display());
     fs::create_dir(path)
 }
 

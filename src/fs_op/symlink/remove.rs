@@ -4,6 +4,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use log::info;
+
 use crate::err::io_err_invalid_input;
 
 /// Returns the target of the removed link.
@@ -16,7 +18,7 @@ pub fn execute(path: &Path) -> io::Result<PathBuf> {
         return io_err_invalid_input(msg);
     }
 
-    println!(
+    info!(
         "Removing symlink: {} => {}",
         path.display(),
         target.display()
@@ -31,7 +33,7 @@ pub fn undo(path: &Path, target: &Option<PathBuf>) -> io::Result<()> {
         .as_ref()
         .expect("Should have been filled during execute()");
 
-    println!(
+    info!(
         "Recreating link: {} => {}",
         path.display(),
         target.display()
