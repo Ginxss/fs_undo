@@ -11,83 +11,167 @@ use std::{
 use crate::undo::Undo;
 
 /// Enum representing reversible filesystem operations.
-/// Each variant stores all information needed to undo itself.
+/// Each variant holds all information needed to undo itself.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FsOp {
-    /// Wraps `File::create_new` and `write_all` (Fails if the file already exists).
-    /// Undo deletes `path`.
+    /// Wraps `File::create_new` and `write_all`.
+    ///
+    /// # Undo
+    ///
+    /// Deletes `path` using `fs::remove_file(path)`.
     CreateFile { path: PathBuf, data: Vec<u8> },
 
-    /// Wraps `fs::write` (Overwrites existing file).
-    /// If `path` will be overwritten, stores the original contents in `prev_data` on execution.
-    /// Undo overwrites `path` with the original contents if available, and deletes `path` otherwise.
+    /// Wraps `fs::write`.
+    ///
+    /// # Before execution
+    ///
+    /// If `path` exists, reads the original contents using `fs::read(path)` and stores them in `prev_data`.
+    ///
+    /// # Undo
+    ///
+    /// If `path` was overwritten:
+    /// Overwrites `path` with `prev_data` using `fs::write(path, prev_data)`
+    ///
+    /// Otherwise:
+    /// Deletes `path` using `fs::remove_file(path)`.
     WriteFile {
         path: PathBuf,
         data: Vec<u8>,
+        /// Holds the data of the overwritten file, if available.
         prev_data: Option<Vec<u8>>,
     },
 
-    /// Wraps `fs::copy` (Overwrites existing file).
-    /// Fails if `to == from`.
-    /// If `to` will be overwritten, stores the original contents in `previous_data` on execution.
-    /// Undo overwrites `to` with the original contents if available, and deletes `to` otherwise.
+    /// Wraps `fs::copy`.
+    ///
+    /// # Before execution
+    ///
+    /// If `to` exists, reads the original contents using `fs::read(to)` and stores them in `prev_data`.
+    ///
+    /// # Undo
+    ///
+    /// If `to` was overwritten:
+    /// Overwrites `to` with `prev_data` using `fs::write(to, prev_data)`
+    ///
+    /// Otherwise:
+    /// Deletes `to` using `fs::remove_file(to)`.
     CopyFile {
         from: PathBuf,
         to: PathBuf,
+        /// Holds the data of the overwritten file, if available.
         prev_data: Option<Vec<u8>>,
     },
 
     /// Wraps `fs::remove_file`.
-    /// Stores the contents of `path` in `data` on execution.
-    /// Undo creates a file at `path` with `data`.
+    ///
+    /// # Before execution
+    ///
+    /// Reads the contents of `path` using `fs::read(path)` and stores them in `data`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an `io::Error` of kind `io::ErrorKind::InvalidInput` if `path` is a symlink instead of traversing it.
+    ///
+    /// # Undo
+    ///
+    /// Creates a file at `path` with `data` using `File::create_new(path)` and `write_all(data)`.
     RemoveFile {
         path: PathBuf,
         data: Option<Vec<u8>>,
     },
 
-    /// Wraps `unix::fs::symlink` (Fails if `path` already exists).
-    /// Undo deletes `path` (Only the symlink is deleted).
+    /// Wraps `unix::fs::symlink`.
+    ///
+    /// # Undo
+    ///
+    /// Deletes `path` using `fs::remove_file(path)` (Only the symlink is deleted).
     CreateSymlink { path: PathBuf, target: PathBuf },
 
     /// Wraps `fs::remove_file`.
-    /// Stores the link target in `target` on execution.
-    /// Undo creates a symlink at `path` with target `target`
+    ///
+    /// # Before execution
+    ///
+    /// Reads the link target using `fs::read_link(path)` and stores it in `target`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an `io::Error` of kind `io::ErrorKind::InvalidInput` if `path` is not a symlink.
+    ///
+    /// # Undo
+    ///
+    /// Creates a symlink at `path` with `target` using `unix::fs::symlink(target, path)`
     RemoveSymlink {
         path: PathBuf,
         target: Option<PathBuf>,
     },
 
-    /// Wraps `fs::create_dir` (Does not create missing parent directories).
-    /// Undo deletes `path`, expecting it to be an empty dir.
+    /// Wraps `fs::create_dir`.
+    ///
+    /// # Undo
+    ///
+    /// Deletes `path` using `fs::remove_dir(path)`.
     CreateDir { path: PathBuf },
 
-    /// Wraps `fs::create_dir_all` (Creates missing parent directories).
-    /// Stores the first existing parent in `existing_base` on execution.
-    /// Undo deletes all created dirs from `path` up to `existing_base`, expecting `path` to be an empty dir.
+    /// Wraps `fs::create_dir_all`.
+    ///
+    /// # Before execution
+    ///
+    /// Stores the first existing parent in `existing_base`.
+    /// Starting with `path`, calls `.parent()` and `.exists()` repeatedly until an existing dir is found.
+    ///
+    /// # Undo
+    ///
+    /// Deletes all dirs from `path` up to `existing_base` using `fs::remove_dir` on each.
     CreateDirAll {
         path: PathBuf,
+        /// The first existing parent folder at the time of execution, searching upwards from `path`.
         existing_base: Option<PathBuf>,
     },
 
     /// Wraps `fs::remove_dir`.
-    /// Undo creates a dir at `path`.
+    ///
+    /// # Undo
+    ///
+    /// Creates an empty dir at `path` using `fs::create_dir(path)`.
     RemoveEmptyDir { path: PathBuf },
 
-    /// Does not wrap a single operation. Recursively walks the dir at `path` and stores delete operations in `ops`.
-    /// Undo reverts all operations in order.
+    /// Does not wrap a single operation.
+    /// Recursively walks the dir at `path`, deletes each entry and stores the delete operations in `ops`.
     ///
-    /// Fails if `path` is a symlink instead of traversing it.
+    /// Tries to make `execute()` as atomic as possible:
+    /// If there is an error while removing an entry, tries to undo all previous operations before returning the error.
+    /// Only returns `Ok(())` if all delete operations were successful.
     ///
-    /// Keep in mind that every operation holds its own state in memory, including the full contents
+    /// Keep in mind that each operation holds its own state in memory, including the full contents
     /// of deleted files, so this can get very expensive.
-    RemoveDirAll { path: PathBuf, ops: Vec<FsOp> },
+    ///
+    /// # Errors
+    ///
+    /// Returns an `io::Error` of kind `io::ErrorKind::InvalidInput` if:
+    /// - `path` is a symlink (does not traverse it)
+    /// - `path` is not a dir
+    ///
+    /// # Undo
+    ///
+    /// Reverts all operations in reverse order of execution using `ops.undo()`.
+    RemoveDirAll {
+        path: PathBuf,
+        /// All delete operations for the recursive deletion of this directory in order.
+        ops: Vec<FsOp>,
+    },
 
     /// Wraps `fs::rename`.
-    /// Undo renames `to` to `from`.
+    ///
+    /// # Undo
+    ///
+    /// Renames `to` to `from` using `fs::rename(to, from)`.
     Rename { from: PathBuf, to: PathBuf },
 }
 
 impl FsOp {
+    /// Creates a `FsOp::CreateFile`.
+    ///
+    /// Does not execute the operation.
+    /// Turns `path` into an owned `PathBuf`.
     pub fn create_file(path: impl AsRef<Path>, data: Vec<u8>) -> FsOp {
         FsOp::CreateFile {
             path: path.as_ref().to_path_buf(),
@@ -95,6 +179,10 @@ impl FsOp {
         }
     }
 
+    /// Creates a `FsOp::WriteFile`.
+    ///
+    /// Does not execute the operation.
+    /// Turns `path` into an owned `PathBuf`.
     pub fn write_file(path: impl AsRef<Path>, data: Vec<u8>) -> FsOp {
         FsOp::WriteFile {
             path: path.as_ref().to_path_buf(),
@@ -103,6 +191,10 @@ impl FsOp {
         }
     }
 
+    /// Creates a `FsOp::CopyFile`.
+    ///
+    /// Does not execute the operation.
+    /// Turns `from` and `to` into owned `PathBuf`s.
     pub fn copy_file(from: impl AsRef<Path>, to: impl AsRef<Path>) -> FsOp {
         FsOp::CopyFile {
             from: from.as_ref().to_path_buf(),
@@ -111,6 +203,10 @@ impl FsOp {
         }
     }
 
+    /// Creates a `FsOp::RemoveFile`.
+    ///
+    /// Does not execute the operation.
+    /// Turns `path` into an owned `PathBuf`.
     pub fn remove_file(path: impl AsRef<Path>) -> FsOp {
         FsOp::RemoveFile {
             path: path.as_ref().to_path_buf(),
@@ -118,6 +214,10 @@ impl FsOp {
         }
     }
 
+    /// Creates a `FsOp::CreateSymlink`.
+    ///
+    /// Does not execute the operation.
+    /// Turns `path` and `target` into owned `PathBuf`s.
     pub fn create_symlink(path: impl AsRef<Path>, target: impl AsRef<Path>) -> FsOp {
         FsOp::CreateSymlink {
             path: path.as_ref().to_path_buf(),
@@ -125,6 +225,10 @@ impl FsOp {
         }
     }
 
+    /// Creates a `FsOp::RemoveSymlink`.
+    ///
+    /// Does not execute the operation.
+    /// Turns `path` into an owned `PathBuf`.
     pub fn remove_symlink(path: impl AsRef<Path>) -> FsOp {
         FsOp::RemoveSymlink {
             path: path.as_ref().to_path_buf(),
@@ -132,12 +236,20 @@ impl FsOp {
         }
     }
 
+    /// Creates a `FsOp::CreateDir`.
+    ///
+    /// Does not execute the operation.
+    /// Turns `path` into an owned `PathBuf`.
     pub fn create_dir(path: impl AsRef<Path>) -> FsOp {
         FsOp::CreateDir {
             path: path.as_ref().to_path_buf(),
         }
     }
 
+    /// Creates a `FsOp::CreateDirAll`.
+    ///
+    /// Does not execute the operation.
+    /// Turns `path` into an owned `PathBuf`.
     pub fn create_dir_all(path: impl AsRef<Path>) -> FsOp {
         FsOp::CreateDirAll {
             path: path.as_ref().to_path_buf(),
@@ -145,12 +257,20 @@ impl FsOp {
         }
     }
 
+    /// Creates a `FsOp::RemoveEmptyDir`.
+    ///
+    /// Does not execute the operation.
+    /// Turns `path` into an owned `PathBuf`.
     pub fn remove_empty_dir(path: impl AsRef<Path>) -> FsOp {
         FsOp::RemoveEmptyDir {
             path: path.as_ref().to_path_buf(),
         }
     }
 
+    /// Creates a `FsOp::RemoveDirAll`.
+    ///
+    /// Does not execute the operation.
+    /// Turns `path` into an owned `PathBuf`.
     pub fn remove_dir_all(path: impl AsRef<Path>) -> FsOp {
         FsOp::RemoveDirAll {
             path: path.as_ref().to_path_buf(),
@@ -158,6 +278,10 @@ impl FsOp {
         }
     }
 
+    /// Creates a `FsOp::Rename`.
+    ///
+    /// Does not execute the operation.
+    /// Turns `from` and `to` into owned `PathBuf`s.
     pub fn rename(from: impl AsRef<Path>, to: impl AsRef<Path>) -> FsOp {
         FsOp::Rename {
             from: from.as_ref().to_path_buf(),
@@ -165,8 +289,12 @@ impl FsOp {
         }
     }
 
-    /// Executes the operation, storing any data needed to reverse it.
-    /// For example, before a file can be deleted, its contents need to be read, which can fail as well.
+    /// Executes the operation.
+    ///
+    /// # Before execution
+    ///
+    /// Queries and stores any data needed to reverse itself, as described in the inidividual `FsOp` variants.
+    /// This can fail as well.
     pub fn execute(&mut self) -> io::Result<()> {
         match self {
             FsOp::CreateFile { path, data } => file::create::execute(path, data),
@@ -229,12 +357,11 @@ impl Undo for FsOp {
 
     /// `Undo` implementation for `FsOp`.
     ///
-    /// Chained filesystem operations always need to be undone in order.
+    /// Behaviour is based on and described in the specific `FsOp` variants.
+    /// Chained filesystem operations that depend on each other always need to be undone in order.
     /// There is no protection against calling `undo()` before `execute()`.
     ///
-    /// Undo expects the filesystem state to not have changed for the context of the operation.
-    ///
-    /// For example:
+    /// Expects the filesystem state to not have changed for the context of the operation since execution. For example:
     /// - Undo on `FsOp::CreateFile` deletes the created file, expecting the path to exist, and failing otherwise.
     /// - Undo on `FsOp::DeleteFile` recreates the deleted file, expecting the path to not exist, and failing otherwise.
     /// - Undo on `FsOp::CreateDir` deletes the created dir, expecting it to be empty.
@@ -279,13 +406,11 @@ impl Undo for Vec<FsOp> {
     type Result = ();
     type Error = io::Error;
 
-    // TODO: better rust docs...
     /// `Undo` implementation for `Vec<FsOp>`.
     ///
-    /// Calls `undo()` for every operation in reverse order.
+    /// Calls `undo()` on every operation in reverse order.
     ///
     /// Returns with an error as soon as one operation can't be undone.
-    ///
     /// Only returns Ok(()) if all operations were successfully undone.
     fn undo(&self) -> Result<Self::Result, Self::Error> {
         for op in self.iter().rev() {

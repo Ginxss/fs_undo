@@ -8,8 +8,6 @@ use log::info;
 
 use crate::err::io_err_invalid_input;
 
-/// Returns the target of the removed link.
-/// Fails if `path` is not a symlink.
 pub fn execute(path: &Path) -> io::Result<PathBuf> {
     let target = fs::read_link(path)?;
 

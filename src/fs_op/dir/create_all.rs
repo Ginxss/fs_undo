@@ -5,7 +5,6 @@ use std::{
 
 use log::info;
 
-/// Returns the first existing parent.
 pub fn execute(path: &Path) -> io::Result<Option<PathBuf>> {
     info!(
         "Creating dir including missing parent dirs: {}",

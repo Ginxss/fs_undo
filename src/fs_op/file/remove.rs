@@ -8,8 +8,6 @@ use log::info;
 
 use crate::err::io_err_invalid_input;
 
-/// Returns the contents of the removed file.
-/// Fails if `path` is a symlink. Use `RemoveSymlink` instead.
 pub fn execute(path: &Path) -> io::Result<Vec<u8>> {
     info!("Removing file: {}", path.display());
 

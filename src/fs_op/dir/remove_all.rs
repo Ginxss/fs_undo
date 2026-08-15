@@ -8,11 +8,6 @@ use crate::{
     undo::Undo,
 };
 
-/// Tries to be as atomic as possible:
-/// If there is an error while removing, tries to undo all previous operations before returning the error.
-/// Only returns Ok(()) if all delete operations were successful.
-///
-/// Returns all delete operations in the order they were executed.
 pub fn execute(path: &Path) -> io::Result<Vec<FsOp>> {
     info!("Removing dir including contents: {}", path.display());
 
