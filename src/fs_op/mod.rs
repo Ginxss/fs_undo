@@ -377,7 +377,7 @@ impl Undo for FsOp {
     ///
     /// Expects the filesystem state to not have changed for the context of the operation since execution. For example:
     /// - Undo on [`FsOp::CreateFile`] deletes the created file, expecting the path to exist, and failing otherwise.
-    /// - Undo on [`FsOp::DeleteFile`] recreates the deleted file, expecting the path to not exist, and failing otherwise.
+    /// - Undo on [`FsOp::RemoveFile`] recreates the deleted file, expecting the path to not exist, and failing otherwise.
     /// - Undo on [`FsOp::CreateDir`] deletes the created dir, expecting it to be empty.
     ///
     /// # Examples

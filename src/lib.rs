@@ -1,4 +1,4 @@
-//! Reversible filesystem operations
+//! Reversible filesystem operations.
 //!
 //! Wraps standard filesystem operations in the enum [`FsOp`], which enables reversal of the operation.
 //! The [`Undo`](undo::Undo) trait is implemented for both [`FsOp`] and `Vec<FsOp>` to allow for easy
