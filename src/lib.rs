@@ -5,6 +5,8 @@
 //! queried and stored in memory.
 //! Not efficient, but useful for scripts that operate on a limited number of filesystem entries and
 //! want to easily restore the initial filesystem state, e.g. on error.
+//!
+//! Symlinks are only supported on Unix systems.
 
 pub mod fs_op;
 pub mod undo;
@@ -26,7 +28,7 @@ use crate::{err::io_err_invalid_filetype, fs_op::FsOp};
 ///
 /// # Errors
 ///
-/// Returns an `io::Error` of kind `io::ErrorKind::InvalidInput` on unsupported filetypes.
+/// Returns an [io::Error] of kind [InvalidInput][io::ErrorKind::InvalidInput] on unsupported filetypes.
 ///
 /// # Examples
 ///
