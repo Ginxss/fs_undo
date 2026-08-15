@@ -2,7 +2,16 @@
 name = "fs_undo"
 version = "0.1.0"
 edition = "2024"
+description = "Reversible filesystem operations"
+readme = "README.md"
+repository = "https://github.com/Ginxss/fs_undo"
+license = "MIT"
+keywords = ["files", "filesystem", "fs", "reverse", "undo"]
+categories = ["filesystem"]
 
 [dependencies]
 log = "0.4.33"
 rand = "0.10.2"
+
+[badges]
+maintenance = { status = "experimental" }
