@@ -1,10 +1,10 @@
 //! Reversible filesystem operations
 //!
-//! Wraps standard filesystem operations in the enum [FsOp], which enables reversal of the operation.
-//! The [Undo][undo::Undo::undo] trait is implemented for both [FsOp] and `Vec<FsOp>` to allow for easy
+//! Wraps standard filesystem operations in the enum [`FsOp`], which enables reversal of the operation.
+//! The [`Undo`](undo::Undo) trait is implemented for both [`FsOp`] and `Vec<FsOp>` to allow for easy
 //! reversal of an operation or a list of operations in reverse order.
 //!
-//! On [execute()][FsOp::execute], all information needed to fully restore the state before the operation is
+//! On [`execute()`](FsOp::execute), all information needed to fully restore the state before the operation is
 //! queried and stored in memory.
 //! Not efficient, but useful for scripts that operate on a limited number of filesystem entries and
 //! want to easily restore the initial filesystem state, e.g. on error.
@@ -23,7 +23,9 @@
 //! }
 //! ```
 
+/// Contains the reversible filesystem operations.
 pub mod fs_op;
+/// Contains the [`Undo`](undo::Undo) trait.
 pub mod undo;
 
 mod err;
@@ -43,7 +45,7 @@ use crate::{err::io_err_invalid_filetype, fs_op::FsOp};
 ///
 /// # Errors
 ///
-/// Returns an [io::Error] of kind [InvalidInput][io::ErrorKind::InvalidInput] on unsupported filetypes.
+/// Returns an [`io::Error`] of kind [`InvalidInput`](io::ErrorKind::InvalidInput) on unsupported filetypes.
 ///
 /// # Examples
 ///
@@ -52,8 +54,7 @@ use crate::{err::io_err_invalid_filetype, fs_op::FsOp};
 ///
 /// fn main() -> std::io::Result<()> {
 ///     let op = fs_undo::remove("a.txt")?;
-///     op.undo()?;
-///     Ok(())
+///     op.undo()
 /// }
 /// ```
 pub fn remove(path: impl AsRef<Path>) -> io::Result<FsOp> {
